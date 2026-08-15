@@ -14,14 +14,111 @@
   font-display: swap;
 }
 
+/* ------------------------------------------------------------------ *
+ * Caveat — the one permitted exception to the all-mono rule, used only
+ * for the handwritten `say hi`. Self-hosted, SIL OFL 1.1.
+ * ------------------------------------------------------------------ */
+@font-face {
+  font-family: 'Caveat';
+  src: url('/fonts/Caveat-Medium.woff2') format('woff2');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
-  :root {
+  /**
+   * The palette lives in custom properties so one attribute swaps the whole
+   * site. Channels are space-separated RGB triplets, not hex, because Tailwind
+   * composes them with `<alpha-value>` — that's what keeps `text-bone/70`
+   * working across both themes.
+   *
+   * `[data-theme='dark']` repeats the defaults so any subtree can force dark
+   * regardless of the document's theme. The boot loader uses exactly that: it
+   * is always dark, even when the site underneath it is in light mode.
+   */
+  :root,
+  [data-theme='dark'] {
     color-scheme: dark;
 
+    --color-ink: 10 10 10;
+    --color-ink-soft: 14 14 14;
+    --color-ink-lift: 20 20 20;
+    /* Accent, taken from the tree's own palette so the page and the artwork
+       speak with one colour. */
+    --color-acid: 68 156 242;
+    --color-acid-deep: 34 112 216;
+    --color-acid-glow: 128 198 251;
+    --color-bone: 242 242 242;
+    --color-edge: 28 28 28;
+    /* The handwritten `say hi` note — neutral grey, so it reads as a pencil
+       aside in the margin rather than as another accent competing with the
+       blue. Used in exactly one place. */
+    --color-note: 150 150 150;
+
+    --smoke-soft: rgba(255, 255, 255, 0.06);
+    --smoke: rgba(255, 255, 255, 0.09);
+    --smoke-hard: rgba(255, 255, 255, 0.12);
+
+    /* Grain multiplier. Light mode needs far less — see below. */
+    --grain-scale: 1;
+
+    /* Pixel tree. Read by canvas at draw time, so it follows the theme with
+       no React state involved. */
+    --tree-branch: 43 106 214;
+    --tree-highlight: 138 180 255;
+    --tree-spark: 255 255 255;
+    /* The pixel substrate is clearly visible in SS-E, not subliminal. */
+    --tree-grid: rgba(255, 255, 255, 0.07);
+  }
+
+  [data-theme='light'] {
+    color-scheme: light;
+
+    --color-ink: 240 239 234; /* paper */
+    --color-ink-soft: 233 232 226;
+    --color-ink-lift: 225 224 217;
+    /* Darkened so the blue keeps its contrast against paper. */
+    --color-acid: 26 92 194;
+    --color-acid-deep: 16 58 138;
+    --color-acid-glow: 48 134 232;
+    --color-bone: 17 17 17;
+    --color-edge: 205 203 195;
+    /* Deepened so the grey holds against paper. */
+    --color-note: 96 96 96;
+
+    --smoke-soft: rgba(0, 0, 0, 0.06);
+    --smoke: rgba(0, 0, 0, 0.1);
+    --smoke-hard: rgba(0, 0, 0, 0.14);
+
+    /* Grain reads much louder on paper than on near-black. */
+    --grain-scale: 0.6;
+
+    /* Inverted for paper: dark branches, and the "sparkle" becomes the
+       darkest value rather than the brightest. */
+    --tree-branch: 42 86 173;
+    --tree-highlight: 26 54 112;
+    --tree-spark: 17 17 17;
+    --tree-grid: rgba(0, 0, 0, 0.06);
+  }
+
+  /**
+   * The boot screen keeps the original acid green. It is a fixed composition
+   * built around that colour — SS2's poster — and it plays before the site's
+   * palette is ever seen, so it is pinned rather than following the theme.
+   * Drop this block to bring the loader over to blue as well.
+   */
+  .boot-palette {
+    --color-acid: 200 245 66;
+    --color-acid-deep: 159 199 47;
+    --color-acid-glow: 219 255 107;
+  }
+
+  :root {
     /* Global tracking defaults — bitmap glyphs sit too close by default. */
     --tracking-body: 0.05em;
     --tracking-heading: 0.08em;
@@ -47,8 +144,8 @@
 
   body {
     margin: 0;
-    background-color: theme('colors.ink.DEFAULT');
-    color: theme('colors.bone');
+    background-color: rgb(var(--color-ink));
+    color: rgb(var(--color-bone));
 
     /* One face, everywhere. Nothing inherits a proportional fallback. */
     font-family: theme('fontFamily.sans');
@@ -103,8 +200,8 @@
   }
 
   ::selection {
-    background: theme('colors.acid.DEFAULT');
-    color: theme('colors.ink.DEFAULT');
+    background: rgb(var(--color-acid));
+    color: rgb(var(--color-ink));
   }
 }
 
@@ -122,6 +219,17 @@
   .crisp-type {
     -webkit-font-smoothing: none;
     -moz-osx-font-smoothing: unset;
+  }
+
+  /* Every interactive element gets the same visible ring, in acid. Focus is
+     never removed — only replaced with something that reads on this palette. */
+  .focus-ring {
+    outline: none;
+  }
+
+  .focus-ring:focus-visible {
+    outline: 2px solid rgb(var(--color-acid));
+    outline-offset: 2px;
   }
 
   .tracking-body {
@@ -155,6 +263,40 @@
   to {
     --sheen-angle: 360deg;
   }
+}
+
+/* Tech-stack marquee. The track holds two copies of the list, so travelling
+   exactly half its width lands on an identical frame — the loop has no seam.
+   Rows desaturate until hovered, and hovering also stops that row. */
+@keyframes marquee-left {
+  from {
+    transform: translate3d(0, 0, 0);
+  }
+  to {
+    transform: translate3d(-50%, 0, 0);
+  }
+}
+
+@keyframes marquee-right {
+  from {
+    transform: translate3d(-50%, 0, 0);
+  }
+  to {
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+.marquee-row {
+  filter: grayscale(1);
+  transition: filter 300ms ease;
+}
+
+.marquee-row:hover {
+  filter: grayscale(0);
+}
+
+.marquee-row:hover .marquee-track {
+  animation-play-state: paused;
 }
 
 @keyframes grain-shift {
@@ -191,6 +333,50 @@
   100% {
     transform: translate3d(0, 0, 0);
   }
+}
+
+/* ------------------------------------------------------------------ *
+ * Theme swap — View Transitions.
+ *
+ * The default cross-fade between the two snapshots is switched off: the
+ * incoming theme is clipped in as a growing circle instead, animated from
+ * the toggle's own coordinates in `ThemeToggle`. Leaving the default fade
+ * on would show both palettes at once through the middle of the wipe.
+ * ------------------------------------------------------------------ */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+
+/**
+ * While the theme is swapping, nothing may run its own colour transition.
+ *
+ * Elements that carry `transition-colors` (the header, every nav link) would
+ * otherwise animate from the old palette to the new one *after* the wipe has
+ * already revealed them — a second, slower stage tacked onto the end of the
+ * swap, which is most of what makes a theme change feel sluggish. Hover
+ * transitions come straight back the moment the class is removed.
+ */
+html.theme-switching *,
+html.theme-switching *::before,
+html.theme-switching *::after {
+  transition: none !important;
+  /* A live backdrop blur captured into both view-transition snapshots is the
+     most expensive thing that can be in one. The header loses its blur for
+     ~340ms and nobody will ever see the difference. */
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+/* The outgoing theme sits still underneath while the new one is revealed
+   over it, so the circle reads as a wipe rather than a dissolve. */
+::view-transition-old(root) {
+  z-index: 1;
+}
+
+::view-transition-new(root) {
+  z-index: 2;
 }
 
 @media (prefers-reduced-motion: reduce) {

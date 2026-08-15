@@ -15,6 +15,30 @@
     />
   </head>
   <body>
+    <!--
+      Theme, resolved before first paint.
+
+      This has to be a blocking inline script: React applies the theme in an
+      effect, which runs after the first paint, so the page would flash the
+      wrong palette on every load. Keep the storage key in sync with
+      `useTheme.ts`.
+    -->
+    <script>
+      (function () {
+        try {
+          var stored = localStorage.getItem('shrestha-exe:theme');
+          var theme =
+            stored === 'light' || stored === 'dark'
+              ? stored
+              : window.matchMedia('(prefers-color-scheme: light)').matches
+                ? 'light'
+                : 'dark';
+          document.documentElement.dataset.theme = theme;
+        } catch (error) {
+          document.documentElement.dataset.theme = 'dark';
+        }
+      })();
+    </script>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

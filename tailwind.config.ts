@@ -47,6 +47,8 @@ export default {
         // Alias kept so display-level components read intentionally, even
         // though it is the same face — size and tracking do the shouting.
         display: DEPARTURE_STACK,
+        /** The single exception to the one-face rule: the `say hi` note. */
+        script: ['Caveat', 'ui-rounded', 'cursive'],
       },
       letterSpacing: {
         // Bitmap type needs air. These are the two global defaults.
@@ -61,22 +63,30 @@ export default {
         tight: '20px',
         display: '0.92',
       },
+      /**
+       * Every colour resolves through a CSS variable so the theme can be
+       * swapped by one attribute on an element, with no class rewriting and no
+       * `dark:` variants scattered through the markup. `<alpha-value>` is what
+       * keeps opacity modifiers (`text-bone/70`) working.
+       */
       colors: {
         ink: {
-          DEFAULT: '#0A0A0A',
-          soft: '#0E0E0E',
-          lift: '#141414',
+          DEFAULT: 'rgb(var(--color-ink) / <alpha-value>)',
+          soft: 'rgb(var(--color-ink-soft) / <alpha-value>)',
+          lift: 'rgb(var(--color-ink-lift) / <alpha-value>)',
         },
         acid: {
-          DEFAULT: '#C8F542',
-          deep: '#9FC72F',
-          glow: '#DBFF6B',
+          DEFAULT: 'rgb(var(--color-acid) / <alpha-value>)',
+          deep: 'rgb(var(--color-acid-deep) / <alpha-value>)',
+          glow: 'rgb(var(--color-acid-glow) / <alpha-value>)',
         },
-        bone: '#F2F2F2',
+        bone: 'rgb(var(--color-bone) / <alpha-value>)',
+        note: 'rgb(var(--color-note) / <alpha-value>)',
+        edge: 'rgb(var(--color-edge) / <alpha-value>)',
         smoke: {
-          DEFAULT: 'rgba(255,255,255,0.09)',
-          soft: 'rgba(255,255,255,0.06)',
-          hard: 'rgba(255,255,255,0.12)',
+          DEFAULT: 'var(--smoke)',
+          soft: 'var(--smoke-soft)',
+          hard: 'var(--smoke-hard)',
         },
       },
       boxShadow: {
