@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { MotionConfig, motion } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { AlbumMarquee } from './AlbumMarquee';
 import { BootCard } from './BootCard';
 import { DebugPanel } from './DebugPanel';
@@ -10,8 +10,10 @@ import { TypeSpecimen } from './TypeSpecimen';
 import { Wordmark } from './Wordmark';
 import { ALBUMS } from '../../data/albums';
 import { phaseFor, useBootProgress } from '../../hooks/useBootProgress';
+import { useExitTimeline } from '../../hooks/useExitTimeline';
 import { useReducedMotion } from '../../hooks/useReducedMotion';
-import { EASE_REVEAL } from '../../lib/easings';
+import { EASE_LAUNCH, EASE_REVEAL } from '../../lib/easings';
+import { isLeaving, type ExitPhase } from '../../lib/exitPhase';
 
 /** Stable identity so the progress effect doesn't re-run on every render. */
 const ALBUM_SOURCES = ALBUMS.map((album) => album.cover);
@@ -20,9 +22,9 @@ const ALBUM_SOURCES = ALBUMS.map((album) => album.cover);
  * Every tunable in the boot sequence. Nothing below this object hardcodes a
  * duration, an opacity, or a speed — tune the piece from here.
  *
- * STAGES 1–2. Present: background field, pixel specks, grain, card shell.
- * Still to come: album marquee, wordmark, status bar + progress gating, exit
- * transition, responsive/reduced-motion/debug passes.
+ * STAGES 1–5. Present: background field, pixel specks, grain, card shell,
+ * album marquee, wordmark, status bar + real progress gating, exit transition
+ * and handoff. Still to come: the responsive pass (stage 6).
  *
  * NOTE: the dithered focal mass that used to sit behind the card is gone by
  * request — nothing renders behind the card now but the flat field, its grain
@@ -58,6 +60,9 @@ export const BOOT_CONFIG = {
     surfaceGrain: 0.055,
     entranceDuration: 0.95,
     entranceDelay: 0.25,
+    /** Kept in sync with `exit.expandMs` / `exit.fadeMs`. */
+    expandSeconds: 0.62,
+    fadeSeconds: 0.4,
     /** Inner padding, px. */
     padding: 26,
     /** Reserved for the status bar (stage 4) so nothing shifts when it lands. */
@@ -135,18 +140,53 @@ export const BOOT_CONFIG = {
   entrance: {
     fieldDuration: 0.9,
   },
+  /**
+   * The exit. ~1.2s end to end, and every number here is independent — the
+   * timeline is a chain of timers, not one long animation, so any beat can be
+   * retuned without recalculating the others.
+   */
+  exit: {
+    /** READY lands, then one beat of nothing. */
+    holdMs: 250,
+    /** Contents leave. The card must look empty before it moves. */
+    emptyMs: 260,
+    /** Marquee first, wordmark after. */
+    contentStaggerMs: 60,
+    /** Card expands past the viewport. */
+    expandMs: 620,
+    /** A single acid frame at the seam. */
+    flashMs: 90,
+    /** Repeat visit within the session: no choreography, just this. */
+    fadeMs: 400,
+  },
 } as const;
 
 type BootSequenceProps = {
   /** Renders the typography specimen instead of the poster (`?type` in the URL). */
   showTypeSpecimen?: boolean;
-  /** `?debug=boot` — pins progress to a slider and freezes all motion. */
+  /** `?debug=boot` — pins progress to a slider and the exit to buttons. */
   debug?: boolean;
+  /** `?exit=<phase>` — the exit phase to start pinned at, for inspecting one beat. */
+  initialExitPhase?: ExitPhase;
+  /** Fired once the loader is finished and safe to unmount. */
+  onComplete?: () => void;
+  /**
+   * Fired on every exit phase change. Wired now, unused for the moment — this
+   * is the seam a dark→light theme shift would sync to.
+   */
+  onPhaseChange?: (phase: ExitPhase) => void;
 };
 
-export function BootSequence({ showTypeSpecimen = false, debug = false }: BootSequenceProps) {
+export function BootSequence({
+  showTypeSpecimen = false,
+  debug = false,
+  initialExitPhase = 'idle',
+  onComplete,
+  onPhaseChange,
+}: BootSequenceProps) {
   const reducedMotion = useReducedMotion();
   const [pinnedProgress, setPinnedProgress] = useState(0.42);
+  const [pinnedExitPhase, setPinnedExitPhase] = useState<ExitPhase>(initialExitPhase);
 
   const boot = useBootProgress({
     assets: ALBUM_SOURCES,
@@ -160,6 +200,20 @@ export function BootSequence({ showTypeSpecimen = false, debug = false }: BootSe
   /** Debug mode has no frame loop to run animations with; so does reduced motion. */
   const frozen = reducedMotion || debug;
 
+  const { phase: timelinePhase, skip } = useExitTimeline({
+    // Debug pins progress by hand; the exit must not fire off the slider.
+    isReady: debug ? false : boot.isReady,
+    isRepeatVisit: boot.isRepeatVisit,
+    timing: BOOT_CONFIG.exit,
+    reducedMotion,
+    onComplete,
+    onPhaseChange,
+  });
+
+  // Debug scrubs the exit by hand; otherwise the timeline owns it.
+  const exitPhase = debug ? pinnedExitPhase : timelinePhase;
+  const leaving = isLeaving(exitPhase);
+
   // In debug mode the slider is the source of truth, not the real work.
   const view = debug
     ? {
@@ -170,7 +224,12 @@ export function BootSequence({ showTypeSpecimen = false, debug = false }: BootSe
     : boot;
 
   const screen = (
-    <div className="relative h-[100dvh] w-full overflow-hidden bg-ink">
+    <div
+      className="relative h-[100dvh] w-full overflow-hidden bg-ink"
+      // Skippable from anywhere in the transition, per the brief. Esc is
+      // handled inside the timeline hook.
+      onClick={exitPhase === 'idle' ? undefined : skip}
+    >
       {/* Base field: near-black with a slight radial lift behind the card. */}
       <div
         aria-hidden
@@ -186,11 +245,18 @@ export function BootSequence({ showTypeSpecimen = false, debug = false }: BootSe
         animate={{ opacity: 1 }}
         transition={{ duration: BOOT_CONFIG.entrance.fieldDuration, ease: EASE_REVEAL }}
       >
-        <PixelSpecks
-          count={BOOT_CONFIG.specks.count}
-          seed={BOOT_CONFIG.specks.seed}
-          still={frozen}
-        />
+        <motion.div
+          className="absolute inset-0"
+          initial={debug ? false : undefined}
+          animate={{ opacity: leaving ? 0 : 1 }}
+          transition={{ duration: 0.3, ease: EASE_REVEAL }}
+        >
+          <PixelSpecks
+            count={BOOT_CONFIG.specks.count}
+            seed={BOOT_CONFIG.specks.seed}
+            still={frozen}
+          />
+        </motion.div>
       </motion.div>
 
       {/* Background grain: two passes. `screen` puts grit into the black field,
@@ -217,37 +283,75 @@ export function BootSequence({ showTypeSpecimen = false, debug = false }: BootSe
           </div>
         ) : (
           <div className="grid h-full w-full place-items-center">
-            <BootCard tuning={BOOT_CONFIG.card} still={frozen} staticRender={debug}>
+            <BootCard
+              tuning={BOOT_CONFIG.card}
+              still={frozen}
+              staticRender={debug}
+              exitPhase={exitPhase}
+            >
               <div
                 className="flex h-full w-full items-stretch gap-6"
                 style={{
                   padding: BOOT_CONFIG.card.padding,
-                  // Space held for the status bar so stage 4 lands without
-                  // shifting anything above it.
+                  // Space held for the status bar so it lands without shifting
+                  // anything above it.
                   paddingBottom: BOOT_CONFIG.card.statusBarHeight,
                 }}
               >
-                <AlbumMarquee
-                  albums={ALBUMS}
-                  tuning={BOOT_CONFIG.marquee}
-                  still={frozen}
+                {/* Contents leave before the card moves, on a fast stagger —
+                    the card has to look empty by the time it expands, or the
+                    expansion drags a shrinking screenshot of its own contents
+                    across the viewport. */}
+                <motion.div
                   className="h-full shrink-0"
-                  // Square-ish column: the panel takes its share of the card's
-                  // width and fills the available height.
                   style={{ width: `${BOOT_CONFIG.card.panelWidthRatio * 100}%` }}
-                />
+                  initial={debug ? false : undefined}
+                  animate={{ opacity: leaving ? 0 : 1, y: leaving ? -18 : 0 }}
+                  transition={{
+                    duration: BOOT_CONFIG.exit.emptyMs / 1000,
+                    ease: EASE_LAUNCH,
+                  }}
+                >
+                  <AlbumMarquee
+                    albums={ALBUMS}
+                    tuning={BOOT_CONFIG.marquee}
+                    still={frozen}
+                    className="h-full w-full"
+                  />
+                </motion.div>
 
-                <div className="flex min-w-0 flex-1 items-center">
+                <motion.div
+                  className="flex min-w-0 flex-1 items-center"
+                  initial={debug ? false : undefined}
+                  animate={{ opacity: leaving ? 0 : 1, y: leaving ? -18 : 0 }}
+                  transition={{
+                    duration: BOOT_CONFIG.exit.emptyMs / 1000,
+                    delay: leaving ? BOOT_CONFIG.exit.contentStaggerMs / 1000 : 0,
+                    ease: EASE_LAUNCH,
+                  }}
+                >
                   <Wordmark tuning={BOOT_CONFIG.wordmark} still={frozen} />
-                </div>
+                </motion.div>
               </div>
-              <StatusBar
-                progress={view.progress}
-                percent={view.percent}
-                phase={view.phase}
-                tuning={BOOT_CONFIG.statusBar}
-                still={frozen}
-              />
+              {/* The bar leaves last: it's the thing that said READY, so it
+                  holds a beat longer than the panels above it. */}
+              <motion.div
+                initial={debug ? false : undefined}
+                animate={{ opacity: leaving ? 0 : 1 }}
+                transition={{
+                  duration: BOOT_CONFIG.exit.emptyMs / 1000,
+                  delay: leaving ? (BOOT_CONFIG.exit.contentStaggerMs * 2) / 1000 : 0,
+                  ease: EASE_LAUNCH,
+                }}
+              >
+                <StatusBar
+                  progress={view.progress}
+                  percent={view.percent}
+                  phase={view.phase}
+                  tuning={BOOT_CONFIG.statusBar}
+                  still={frozen}
+                />
+              </motion.div>
             </BootCard>
           </div>
         )}
@@ -260,23 +364,47 @@ export function BootSequence({ showTypeSpecimen = false, debug = false }: BootSe
           animated={!reducedMotion}
         />
       </div>
+
+      {/* Ink curtain: wipes across while the card expands, so the handoff is a
+          surface passing over the screen rather than a shape growing on it. */}
+      <motion.div
+        aria-hidden
+        className="pointer-events-none absolute inset-0 z-20 bg-ink"
+        initial={debug ? false : { x: '-100%' }}
+        animate={{ x: exitPhase === 'expand' || exitPhase === 'flash' ? '0%' : '-100%' }}
+        transition={{ duration: BOOT_CONFIG.exit.expandMs / 1000, ease: EASE_LAUNCH }}
+      />
+
+      {/* One acid frame at the seam. Long enough to register, short enough to
+          doubt — it reads as the screen switching on, not as a colour wash. */}
+      <motion.div
+        aria-hidden
+        className="bg-acid pointer-events-none absolute inset-0 z-30"
+        initial={debug ? false : { opacity: 0 }}
+        animate={{ opacity: exitPhase === 'flash' ? 0.92 : 0 }}
+        transition={{ duration: BOOT_CONFIG.exit.flashMs / 1000, ease: 'linear' }}
+      />
     </div>
   );
 
   if (!debug) return screen;
 
-  // `isStatic` renders every motion component at its final animated value with
-  // no frame loop at all — the screen becomes inspectable even where rAF is
-  // suspended, and the slider stays the only thing that changes.
+  // Deliberately NOT wrapped in `MotionConfig isStatic`: that renders each
+  // motion component once and then ignores prop changes, so the scrub buttons
+  // would select a phase without anything moving. Debug plays the real
+  // transitions; `?exit=<phase>` is there for pinning a single beat statically
+  // on load instead.
   return (
-    <MotionConfig isStatic>
+    <>
       {screen}
       <DebugPanel
         progress={view.progress}
         percent={view.percent}
         phase={view.phase}
+        exitPhase={exitPhase}
         onProgressChange={setPinnedProgress}
+        onExitPhaseChange={setPinnedExitPhase}
       />
-    </MotionConfig>
+    </>
   );
 }

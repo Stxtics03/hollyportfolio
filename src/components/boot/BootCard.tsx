@@ -1,7 +1,8 @@
-import type { ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { motion } from 'framer-motion';
 import { GrainOverlay } from './GrainOverlay';
-import { EASE_BREATH, EASE_REVEAL } from '../../lib/easings';
+import { EASE_BREATH, EASE_LAUNCH, EASE_REVEAL } from '../../lib/easings';
+import type { ExitPhase } from '../../lib/exitPhase';
 
 export type BootCardTuning = {
   /** Card width. The height follows from `heightRatio`. */
@@ -32,6 +33,10 @@ export type BootCardTuning = {
   surfaceGrain: number;
   entranceDuration: number;
   entranceDelay: number;
+  /** Seconds the card takes to expand past the viewport on exit. */
+  expandSeconds: number;
+  /** Seconds of the plain fade used on a repeat visit. */
+  fadeSeconds: number;
 };
 
 type BootCardProps = {
@@ -44,6 +49,8 @@ type BootCardProps = {
    * `opacity: 0` with no frame loop to animate it away.
    */
   staticRender?: boolean;
+  /** Where the exit timeline currently is. */
+  exitPhase?: ExitPhase;
   children?: ReactNode;
 };
 
@@ -64,21 +71,58 @@ export function BootCard({
   tuning,
   still = false,
   staticRender = false,
+  exitPhase = 'idle',
   children,
 }: BootCardProps) {
   const height = `min(calc(${tuning.width} * ${tuning.heightRatio}), ${tuning.maxHeight})`;
+  const rootRef = useRef<HTMLDivElement>(null);
+
+  /**
+   * How far the card must scale to swallow the viewport. Measured up front and
+   * on resize — never while the expansion is running, where a changing target
+   * would visibly re-aim the animation mid-flight.
+   */
+  const [coverScale, setCoverScale] = useState(3);
+  useEffect(() => {
+    const measure = () => {
+      const rect = rootRef.current?.getBoundingClientRect();
+      if (!rect || rect.width === 0) return;
+      setCoverScale(
+        Math.max(window.innerWidth / rect.width, window.innerHeight / rect.height) * 1.15,
+      );
+    };
+    measure();
+    window.addEventListener('resize', measure);
+    return () => window.removeEventListener('resize', measure);
+  }, []);
+
+  const expanding = exitPhase === 'expand' || exitPhase === 'flash' || exitPhase === 'done';
+  const fading = exitPhase === 'fade';
+
+  const animate = expanding
+    ? { opacity: 1, scale: coverScale, y: 0 }
+    : fading
+      ? { opacity: 0, scale: 1, y: 0 }
+      : { opacity: 1, scale: 1, y: 0 };
+
+  const transition = expanding
+    ? { duration: tuning.expandSeconds, ease: EASE_LAUNCH }
+    : fading
+      ? { duration: tuning.fadeSeconds, ease: EASE_REVEAL }
+      : {
+          duration: tuning.entranceDuration,
+          delay: tuning.entranceDelay,
+          ease: EASE_REVEAL,
+        };
 
   return (
     <motion.div
+      ref={rootRef}
       className="relative"
       style={{ width: tuning.width, height }}
       initial={staticRender ? false : { opacity: 0, scale: 0.965, y: 14 }}
-      animate={{ opacity: 1, scale: 1, y: 0 }}
-      transition={{
-        duration: tuning.entranceDuration,
-        delay: tuning.entranceDelay,
-        ease: EASE_REVEAL,
-      }}
+      animate={animate}
+      transition={transition}
     >
       {/* Optional neutral halo. Off by default (`haloAlpha: 0`) — nothing
           renders behind the card. Shaped as a ring rather than a disc, since
@@ -109,17 +153,28 @@ export function BootCard({
       ) : null}
 
       {/* The card surface itself. */}
-      <div
-        className="relative h-full w-full overflow-hidden rounded-card border"
+      <motion.div
+        className="relative h-full w-full overflow-hidden border"
         style={{
           // "Barely-there" is the brief: two stops, four points of luminance
           // between them.
           background: 'linear-gradient(180deg, #101010 0%, #0E0E0E 55%, #0C0C0C 100%)',
-          // A flat neutral edge, not a translucent white — a `rgba(255,255,255,…)`
-          // hairline picks up whatever is behind it, which is how the border
-          // ended up looking tinted.
-          borderColor: tuning.edgeColor,
           boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.05)',
+        }}
+        // The radius relaxing to 0 is what turns the card into the page
+        // surface. The border goes with it — scaled up 3×, a 1px hairline
+        // would read as a 3px frame around the whole viewport.
+        initial={false}
+        animate={{
+          borderRadius: expanding ? 0 : 28,
+          // A flat neutral edge, not a translucent white — an
+          // `rgba(255,255,255,…)` hairline picks up whatever is behind it,
+          // which is how the border ended up looking tinted.
+          borderColor: expanding ? 'rgba(28,28,28,0)' : tuning.edgeColor,
+        }}
+        transition={{
+          duration: expanding ? tuning.expandSeconds : 0.3,
+          ease: EASE_LAUNCH,
         }}
       >
         {/* Under the content, never over it: this dithers the fill's banding
@@ -131,7 +186,7 @@ export function BootCard({
           animated={!still}
         />
         <div className="relative h-full w-full">{children}</div>
-      </div>
+      </motion.div>
 
       {/* Travelling sheen: a conic gradient clipped to a 1px ring by masking
           the content box out of the border box. Sits above the surface so it
@@ -150,7 +205,10 @@ export function BootCard({
           mask: 'linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0)',
           maskComposite: 'exclude',
           animation: still ? undefined : `sheen-sweep ${tuning.sheenSeconds}s linear infinite`,
-          opacity: still ? 0 : 1,
+          // The glint has no business surviving into the expansion — it would
+          // stretch into a lit band across the whole viewport.
+          opacity: still || exitPhase !== 'idle' ? 0 : 1,
+          transition: 'opacity 200ms linear',
         }}
       />
     </motion.div>
