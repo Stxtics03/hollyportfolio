@@ -1,0 +1,204 @@
+/* ------------------------------------------------------------------ *
+ * Departure Mono — the site's only typeface.
+ * Self-hosted (public/fonts), SIL OFL 1.1, © Helena Zhang.
+ * The family ships a single weight (Regular / 400). See `.pixel-bold`
+ * below for the bolder tier — synthetic bold smears a bitmap face, so
+ * we emulate weight the way bitmap type always has: a 1px smear of the
+ * glyph against itself.
+ * ------------------------------------------------------------------ */
+@font-face {
+  font-family: 'Departure Mono';
+  src: url('/fonts/DepartureMono-Regular.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    color-scheme: dark;
+
+    /* Global tracking defaults — bitmap glyphs sit too close by default. */
+    --tracking-body: 0.05em;
+    --tracking-heading: 0.08em;
+  }
+
+  /* Pixel-first rendering everywhere: no smoothing on upscaled raster
+     (the dither mass, album covers, noise tiles). */
+  *,
+  *::before,
+  *::after {
+    image-rendering: pixelated;
+  }
+
+  /* SVG gradients/turbulence must stay smooth — pixelated would band them. */
+  svg,
+  svg * {
+    image-rendering: auto;
+  }
+
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    margin: 0;
+    background-color: theme('colors.ink.DEFAULT');
+    color: theme('colors.bone');
+
+    /* One face, everywhere. Nothing inherits a proportional fallback. */
+    font-family: theme('fontFamily.sans');
+    font-weight: 400;
+    font-synthesis: none; /* never let the browser fake a bold/italic cut */
+
+    /* Bitmap type needs more air than a normal sans. Integer px only —
+       fractional line boxes push glyphs off the pixel grid and blur them. */
+    font-size: 16px;
+    line-height: 28px;
+    letter-spacing: var(--tracking-body);
+
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* Headings share the face; hierarchy is size + tracking + color only. */
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-family: theme('fontFamily.sans');
+    font-weight: 400;
+    letter-spacing: var(--tracking-heading);
+    line-height: 1.15;
+    margin: 0;
+    text-transform: uppercase;
+  }
+
+  /* Every raster surface in the piece (dither mass, album covers) is authored
+     at 1 device pixel per design pixel and scaled up by an integer factor. */
+  canvas {
+    image-rendering: pixelated;
+  }
+
+  /* Form controls opt out of inheritance by default — drag them back in. */
+  button,
+  input,
+  select,
+  textarea {
+    font: inherit;
+    letter-spacing: inherit;
+  }
+
+  code,
+  pre,
+  kbd,
+  samp {
+    font-family: theme('fontFamily.mono');
+  }
+
+  ::selection {
+    background: theme('colors.acid.DEFAULT');
+    color: theme('colors.ink.DEFAULT');
+  }
+}
+
+@layer utilities {
+  /* The "bold" tier of a single-weight bitmap family. Horizontal smear only,
+     so glyphs thicken without blurring the pixel grid. */
+  .pixel-bold {
+    text-shadow:
+      1px 0 0 currentColor,
+      -0.5px 0 0 currentColor;
+  }
+
+  /* True bitmap rendering — hard pixel edges, no greyscale AA. Best on
+     integer font sizes; looks chewed at fractional ones. */
+  .crisp-type {
+    -webkit-font-smoothing: none;
+    -moz-osx-font-smoothing: unset;
+  }
+
+  .tracking-body {
+    letter-spacing: var(--tracking-body);
+  }
+
+  .tracking-heading {
+    letter-spacing: var(--tracking-heading);
+  }
+}
+
+/* ------------------------------------------------------------------ *
+ * Keyframes that Framer Motion shouldn't own (continuous, never
+ * interrupted, cheaper as pure CSS).
+ * ------------------------------------------------------------------ */
+
+/* A conic gradient's start angle is only animatable if the custom property
+   holding it is registered with a type. Browsers without @property (older
+   Firefox) simply render the sheen parked at its initial angle — a static
+   highlight on one corner, which is a perfectly acceptable fallback. */
+@property --sheen-angle {
+  syntax: '<angle>';
+  initial-value: 0deg;
+  inherits: false;
+}
+
+@keyframes sheen-sweep {
+  from {
+    --sheen-angle: 0deg;
+  }
+  to {
+    --sheen-angle: 360deg;
+  }
+}
+
+@keyframes grain-shift {
+  0% {
+    transform: translate3d(0, 0, 0);
+  }
+  10% {
+    transform: translate3d(-2%, -3%, 0);
+  }
+  20% {
+    transform: translate3d(-8%, 2%, 0);
+  }
+  30% {
+    transform: translate3d(4%, -6%, 0);
+  }
+  40% {
+    transform: translate3d(-3%, 6%, 0);
+  }
+  50% {
+    transform: translate3d(-8%, 4%, 0);
+  }
+  60% {
+    transform: translate3d(6%, 0, 0);
+  }
+  70% {
+    transform: translate3d(-2%, 6%, 0);
+  }
+  80% {
+    transform: translate3d(-8%, -2%, 0);
+  }
+  90% {
+    transform: translate3d(4%, 4%, 0);
+  }
+  100% {
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}
