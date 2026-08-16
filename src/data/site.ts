@@ -34,7 +34,7 @@ export type SectionMeta = {
 export const SECTIONS = {
   about: { id: 'about', label: 'about', marker: '01' },
   stack: { id: 'stack', label: 'tech stack', marker: '*' },
-  projects: { id: 'projects', label: 'liked playlist', marker: '02' },
+  projects: { id: 'projects', label: 'projects', marker: '02' },
   experience: { id: 'experience', label: 'blend', marker: '03' },
 } as const satisfies Record<string, SectionMeta>;
 

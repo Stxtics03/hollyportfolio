@@ -2,6 +2,7 @@ import { HatchDivider } from '../layout/HatchDivider';
 import { Header } from '../layout/Header';
 import { Section } from '../layout/Section';
 import { ProfileCard } from '../hero/ProfileCard';
+import { ProjectGrid } from '../projects/ProjectGrid';
 import { TechMarquee } from '../stack/TechMarquee';
 import { TreeField } from '../tree/TreeField';
 import { SECTIONS } from '../../data/site';
@@ -150,7 +151,7 @@ export function SiteShell() {
               marker={SECTIONS.projects.marker}
               still={reducedMotion}
             >
-              <Placeholder lines={4} />
+              <ProjectGrid still={reducedMotion} />
             </Section>
 
             <div style={gap} />
