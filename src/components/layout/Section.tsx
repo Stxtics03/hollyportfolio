@@ -61,7 +61,9 @@ export function Section({
             <span className="text-acid" aria-hidden>
               {marker}
             </span>
-            <span className="text-bone/70 lowercase">{label}</span>
+            {/* No case override: the base stylesheet uppercases every heading,
+                and section labels are headings like any other. */}
+            <span className="text-bone/70">{label}</span>
           </h2>
 
           {children}

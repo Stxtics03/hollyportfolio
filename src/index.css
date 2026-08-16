@@ -177,6 +177,62 @@
   }
 }
 
+/* ------------------------------------------------------------------ *
+ * Scale divider motion.
+ *
+ * Both animations move a `transform` and nothing else, so the browser can run
+ * them on the compositor: the bands never trigger layout or paint, however
+ * long the page sits open. The global reduced-motion rule below collapses both
+ * to a single instant frame, which leaves the dividers exactly as they were
+ * before — a still striped band.
+ * ------------------------------------------------------------------ */
+
+/* One period of the tick pattern, so the loop is seamless: after travelling
+   exactly that far every tick lands on an identical one. `ScaleDivider`
+   computes the distance and passes it in, sign included, which is what lets
+   the two bands drift in opposite directions off one keyframe. */
+@keyframes scale-drift {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(var(--scale-period, 40px));
+  }
+}
+
+/* A pulse crossing the band, lighting the ticks in the accent as it passes.
+   The sweep occupies the first third of the cycle and the rest is dead air —
+   it should read as something passing through, not as a running light.
+
+   `transform` is declared on every keyframe on purpose. Declare it only at the
+   ends and the browser still splits the animation at the opacity keyframes,
+   restarting the timing function inside each slice — the pulse then crosses
+   the band in a fraction of the intended time and sits parked at the far edge
+   for the rest of the cycle. Stating the position at each stop, and running
+   this one linear, is what keeps the travel even. */
+@keyframes scale-glint {
+  0% {
+    transform: translateX(-100%);
+    opacity: 0;
+  }
+  4% {
+    transform: translateX(-44%);
+    opacity: 1;
+  }
+  32% {
+    transform: translateX(344%);
+    opacity: 1;
+  }
+  36% {
+    transform: translateX(400%);
+    opacity: 0;
+  }
+  100% {
+    transform: translateX(400%);
+    opacity: 0;
+  }
+}
+
 @layer utilities {
   /* The "bold" tier of a single-weight bitmap family. Horizontal smear only,
      so glyphs thicken without blurring the pixel grid. */

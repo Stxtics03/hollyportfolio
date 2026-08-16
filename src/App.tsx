@@ -3,6 +3,7 @@ import { Route, Routes, useLocation } from 'react-router-dom';
 import { BootSequence } from './components/boot/BootSequence';
 import { SiteShell } from './components/site/SiteShell';
 import { BlogPage } from './pages/BlogPage';
+import { OnekoCat } from './components/pet/OnekoCat';
 import { toExitPhase, type ExitPhase } from './lib/exitPhase';
 
 export default function App() {
@@ -35,6 +36,11 @@ export default function App() {
         {/* Anything else falls back to the index rather than a dead end. */}
         <Route path="*" element={<SiteShell />} />
       </Routes>
+
+      {/* Site-wide, and only once the loader is gone: the boot sequence needs
+          every frame it can get, and a cat wandering over the loading screen
+          is not the first impression the front door is going for. */}
+      {booting ? null : <OnekoCat />}
 
       {booting ? (
         // Forced dark regardless of the site's theme underneath — the loader

@@ -1,4 +1,4 @@
-import { HatchDivider } from '../layout/HatchDivider';
+import { ScaleDivider } from '../layout/ScaleDivider';
 import { Header } from '../layout/Header';
 import { Section } from '../layout/Section';
 import { ProfileCard } from '../hero/ProfileCard';
@@ -57,7 +57,7 @@ export const SITE_CONFIG = {
     /**
      * How far the field extends above its section. Sized to land in the clear
      * gap between the divider above and the first section — go past the
-     * divider and the hatch band ends up drawn on top of the grid, which is
+     * divider and the divider band ends up drawn on top of the grid, which is
      * the seam we removed at the bottom of the page.
      */
     topBleed: 56,
@@ -71,14 +71,25 @@ export const SITE_CONFIG = {
     /** Narrower container, so the fades come in tighter. */
     fade: 48,
   },
-  hatch: {
+  /** The section divider: a measurement scale. See `ScaleDivider`. */
+  scale: {
     height: 24,
-    angle: -45,
-    gap: 7,
+    tick: 8,
+    majorEvery: 5,
+    minorHeight: 5,
+    majorHeight: 13,
     weight: 1,
     /** Low-contrast on purpose — the band is a rule, not an element. */
-    color: 'rgba(255,255,255,0.08)',
-    edgeColor: 'rgba(255,255,255,0.05)',
+    color: 'rgba(255,255,255,0.14)',
+    majorColor: 'rgba(255,255,255,0.26)',
+    railColor: 'rgba(255,255,255,0.07)',
+    /**
+     * One period — five ticks — every 4s. Slow enough that the band still
+     * reads as a rule; fast enough to be obviously alive if you look at it.
+     */
+    driftSeconds: 4,
+    /** A pulse every 11s, so it stays an event rather than a running light. */
+    glintSeconds: 11,
   },
 } as const;
 
@@ -104,8 +115,10 @@ export function SiteShell() {
           <ProfileCard />
         </Section>
 
+        {/* The two bands run opposite ways and pulse out of step — same rule,
+            drawn twice, but never the same frame twice. */}
         <div style={gap}>
-          <HatchDivider tuning={SITE_CONFIG.hatch} />
+          <ScaleDivider tuning={SITE_CONFIG.scale} flow="right" delay={0} />
         </div>
 
         {/* Inside the column, not full-bleed: the rows belong to the same
@@ -121,7 +134,7 @@ export function SiteShell() {
         </Section>
 
         <div style={gap}>
-          <HatchDivider tuning={SITE_CONFIG.hatch} />
+          <ScaleDivider tuning={SITE_CONFIG.scale} flow="left" delay={5.5} />
         </div>
 
         {/* The tree lives behind these two sections. It sticks to the viewport
@@ -161,7 +174,7 @@ export function SiteShell() {
             </Section>
           </div>
 
-          {/* No closing hatch band here on purpose: it cut straight across the
+          {/* No closing divider here on purpose: it cut straight across the
               tree's grid field, which reads as a seam through the artwork
               rather than as a rule between sections. The field itself is the
               end of the page. */}

@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import { Header } from '../components/layout/Header';
-import { HatchDivider } from '../components/layout/HatchDivider';
+import { ScaleDivider } from '../components/layout/ScaleDivider';
 import { SITE_CONFIG } from '../components/site/SiteShell';
 import { BLOG_META } from '../data/site';
 import { POSTS } from '../data/posts';
@@ -14,7 +14,7 @@ const DATE_FORMAT = new Intl.DateTimeFormat('en-GB', {
 /**
  * The blog index, on its own route.
  *
- * Same spine as the home page — one narrow column, hatch dividers running
+ * Same spine as the home page — one narrow column, scale dividers running
  * full-bleed past it — so moving between the two reads as one site rather than
  * two. Post bodies aren't built yet; this lists what's in `data/posts.ts`.
  */
@@ -31,7 +31,10 @@ export function BlogPage() {
             <span className="text-acid" aria-hidden>
               {BLOG_META.marker}
             </span>
-            <span className="text-bone/70 lowercase">{BLOG_META.label}</span>
+            {/* Stated rather than inherited: this label sits in a `p`, not a
+                heading, so the base rule that uppercases headings — and that
+                the home page's section labels rely on — never reaches it. */}
+            <span className="text-bone/70 uppercase">{BLOG_META.label}</span>
           </p>
 
           <h1 className="text-bone tracking-heading text-title mb-4">{BLOG_META.title}</h1>
@@ -39,7 +42,7 @@ export function BlogPage() {
         </div>
 
         <div style={{ marginTop: SITE_CONFIG.sectionGap, marginBottom: SITE_CONFIG.sectionGap }}>
-          <HatchDivider tuning={SITE_CONFIG.hatch} />
+          <ScaleDivider tuning={SITE_CONFIG.scale} flow="right" />
         </div>
 
         <div className="mx-auto w-full max-w-[640px] px-6">
