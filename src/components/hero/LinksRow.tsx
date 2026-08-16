@@ -1,10 +1,9 @@
 import { Link } from 'react-router-dom';
 import { LinkIcon } from './LinkIcons';
-import { SayHiArrow, SAY_HI_TIP_OFFSET } from './SayHiArrow';
 import { LINKS, type SiteLink } from '../../data/links';
 
 const TILE_BASE =
-  'group border-smoke bg-ink-soft relative flex h-11 w-11 items-center justify-center rounded-xl border transition-all duration-200';
+  'group border-smoke bg-ink-soft relative flex h-8 w-8 items-center justify-center rounded-[10px] border transition-all duration-200';
 
 /** The platform name, revealed under a tile on hover. */
 function TileLabel({ label }: { label: string }) {
@@ -62,32 +61,22 @@ function Tile({ link }: { link: SiteLink }) {
 }
 
 /**
- * A single horizontal row of link tiles, sitting directly under the about
- * card in the same column — the layout in SS-C rather than a side panel.
- *
- * `say hi` is pinned to the left of the row on wide screens and hidden below
- * `md`, where there is no margin for it to live in and it would push the tiles
- * off their line.
+ * A single horizontal row of link tiles, sitting in the top-right of the about
+ * card — the layout in SS-C rather than a side panel.
  */
-export function LinksRow() {
+export function LinksRow({ className = '' }: { className?: string }) {
   return (
-    // The note is a flex sibling rather than an absolutely positioned overlay,
-    // so its arrow lines up with the tiles by layout instead of by guessed
-    // offsets. `SAY_HI_TIP_OFFSET` pulls it up by exactly the distance between
-    // the arrow's tip and the tile row's centre line.
-    // The note hangs above the row by `SAY_HI_TIP_OFFSET`, so the gap under
-    // the card has to cover that overhang as well — at a smaller margin the
-    // handwriting ran into the card's bottom edge.
-    <div className="mt-20 flex items-start">
-      <SayHiArrow className="hidden md:block" style={{ marginTop: SAY_HI_TIP_OFFSET }} />
-
-      <ul className="flex flex-wrap items-center gap-3">
-        {LINKS.map((link) => (
-          <li key={link.id} className="pb-5">
-            <Tile link={link} />
-          </li>
-        ))}
-      </ul>
-    </div>
+    // Spacing around the row is the caller's business.
+    <ul className={`flex flex-wrap items-center gap-2 ${className}`}>
+      {LINKS.map((link) => (
+        // No padding here: the row's box has to be exactly one tile tall, or
+        // centring it against the identity block puts the tiles off-centre by
+        // half the padding. The hover label is absolute, so it needs no space
+        // reserved — it overhangs into the gap above the headline.
+        <li key={link.id}>
+          <Tile link={link} />
+        </li>
+      ))}
+    </ul>
   );
 }

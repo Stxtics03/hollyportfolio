@@ -53,7 +53,9 @@ export function StatusBar({ progress, percent, phase, tuning, still = false }: S
               className="h-3 flex-1 rounded-[1px]"
               style={{
                 transform: `skewX(${tuning.skew}deg)`,
-                backgroundColor: isFilled ? '#C8F542' : 'rgba(255,255,255,0.09)',
+                // Reads the accent from the theme rather than hardcoding it,
+                // so the loader can never drift from the site's palette.
+                backgroundColor: isFilled ? 'rgb(var(--color-acid))' : 'var(--smoke)',
               }}
               animate={
                 isLeading && !still

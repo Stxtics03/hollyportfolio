@@ -2,7 +2,6 @@ import { HatchDivider } from '../layout/HatchDivider';
 import { Header } from '../layout/Header';
 import { Section } from '../layout/Section';
 import { ProfileCard } from '../hero/ProfileCard';
-import { LinksRow } from '../hero/LinksRow';
 import { TechMarquee } from '../stack/TechMarquee';
 import { TreeField } from '../tree/TreeField';
 import { SECTIONS } from '../../data/site';
@@ -108,9 +107,6 @@ export function SiteShell() {
       <main className="pt-14 pb-32">
         <div style={{ height: SITE_CONFIG.sectionGap }} />
 
-        {/* Card, then the links row directly beneath it — same column, same
-            block, as in SS-C. A side panel here squeezed the terminal to the
-            point of uselessness. */}
         <Section
           id={SECTIONS.about.id}
           label={SECTIONS.about.label}
@@ -118,7 +114,6 @@ export function SiteShell() {
           still={reducedMotion}
         >
           <ProfileCard />
-          <LinksRow />
         </Section>
 
         <div style={gap}>

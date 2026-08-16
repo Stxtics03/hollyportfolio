@@ -47,7 +47,7 @@ const ICONS: Record<LinkId, JSX.Element> = {
 
 export function LinkIcon({ id }: { id: LinkId }) {
   return (
-    <svg width="22" height="22" viewBox="0 0 24 24" aria-hidden focusable="false">
+    <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden focusable="false">
       {ICONS[id]}
     </svg>
   );

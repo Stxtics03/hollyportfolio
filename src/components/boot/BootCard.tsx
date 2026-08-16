@@ -158,7 +158,8 @@ export function BootCard({
         style={{
           // "Barely-there" is the brief: two stops, four points of luminance
           // between them.
-          background: 'linear-gradient(180deg, #101010 0%, #0E0E0E 55%, #0C0C0C 100%)',
+          background:
+            'linear-gradient(180deg, rgb(var(--color-ink-lift)) 0%, rgb(var(--color-ink-soft)) 55%, rgb(var(--color-ink)) 100%)',
           boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.05)',
         }}
         // The radius relaxing to 0 is what turns the card into the page

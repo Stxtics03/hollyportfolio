@@ -47,8 +47,6 @@ export default {
         // Alias kept so display-level components read intentionally, even
         // though it is the same face — size and tracking do the shouting.
         display: DEPARTURE_STACK,
-        /** The single exception to the one-face rule: the `say hi` note. */
-        script: ['Caveat', 'ui-rounded', 'cursive'],
       },
       letterSpacing: {
         // Bitmap type needs air. These are the two global defaults.
@@ -81,7 +79,6 @@ export default {
           glow: 'rgb(var(--color-acid-glow) / <alpha-value>)',
         },
         bone: 'rgb(var(--color-bone) / <alpha-value>)',
-        note: 'rgb(var(--color-note) / <alpha-value>)',
         edge: 'rgb(var(--color-edge) / <alpha-value>)',
         smoke: {
           DEFAULT: 'var(--smoke)',

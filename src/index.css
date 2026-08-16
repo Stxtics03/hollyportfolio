@@ -14,18 +14,6 @@
   font-display: swap;
 }
 
-/* ------------------------------------------------------------------ *
- * Caveat — the one permitted exception to the all-mono rule, used only
- * for the handwritten `say hi`. Self-hosted, SIL OFL 1.1.
- * ------------------------------------------------------------------ */
-@font-face {
-  font-family: 'Caveat';
-  src: url('/fonts/Caveat-Medium.woff2') format('woff2');
-  font-weight: 500;
-  font-style: normal;
-  font-display: swap;
-}
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -45,6 +33,8 @@
   [data-theme='dark'] {
     color-scheme: dark;
 
+    /* Surfaces stay neutral near-black. The blue lives in type and motion —
+       tinting the ground as well flattens the contrast the accent depends on. */
     --color-ink: 10 10 10;
     --color-ink-soft: 14 14 14;
     --color-ink-lift: 20 20 20;
@@ -55,10 +45,6 @@
     --color-acid-glow: 128 198 251;
     --color-bone: 242 242 242;
     --color-edge: 28 28 28;
-    /* The handwritten `say hi` note — neutral grey, so it reads as a pencil
-       aside in the margin rather than as another accent competing with the
-       blue. Used in exactly one place. */
-    --color-note: 150 150 150;
 
     --smoke-soft: rgba(255, 255, 255, 0.06);
     --smoke: rgba(255, 255, 255, 0.09);
@@ -88,8 +74,6 @@
     --color-acid-glow: 48 134 232;
     --color-bone: 17 17 17;
     --color-edge: 205 203 195;
-    /* Deepened so the grey holds against paper. */
-    --color-note: 96 96 96;
 
     --smoke-soft: rgba(0, 0, 0, 0.06);
     --smoke: rgba(0, 0, 0, 0.1);
@@ -104,18 +88,6 @@
     --tree-highlight: 26 54 112;
     --tree-spark: 17 17 17;
     --tree-grid: rgba(0, 0, 0, 0.06);
-  }
-
-  /**
-   * The boot screen keeps the original acid green. It is a fixed composition
-   * built around that colour — SS2's poster — and it plays before the site's
-   * palette is ever seen, so it is pinned rather than following the theme.
-   * Drop this block to bring the loader over to blue as well.
-   */
-  .boot-palette {
-    --color-acid: 200 245 66;
-    --color-acid-deep: 159 199 47;
-    --color-acid-glow: 219 255 107;
   }
 
   :root {

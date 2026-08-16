@@ -37,9 +37,10 @@ export default function App() {
       </Routes>
 
       {booting ? (
-        // Forced dark regardless of the site's theme underneath: the boot
-        // screen is one fixed composition, not a themeable surface.
-        <div data-theme="dark" className="boot-palette fixed inset-0 z-50">
+        // Forced dark regardless of the site's theme underneath — the loader
+        // is always the dark composition — but it now takes the site's accent
+        // rather than pinning one of its own.
+        <div data-theme="dark" className="fixed inset-0 z-50">
           <BootSequence
             showTypeSpecimen={params.has('type')}
             debug={params.get('debug') === 'boot'}

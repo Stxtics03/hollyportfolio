@@ -5,20 +5,24 @@ import { applyTheme, persistTheme, useTheme, type Theme } from '../../hooks/useT
 import { useReducedMotion } from '../../hooks/useReducedMotion';
 
 /**
- * Wipe timing.
+ * Wipe timing, taken from `D:\Program\port` (`src/lib/theme-transition.ts`),
+ * which is the version that actually reads as smooth.
  *
  * The circle travels from the toggle to the furthest corner — around 1800px on
  * a laptop — so easing matters more than duration. A circle's *area* grows
  * with the square of its radius, so the last stretch of radius is by far the
- * most screen changing per frame: an ease-out curve decelerates exactly where
- * the most is happening, and reads as sluggish even at 300ms.
+ * most screen changing per frame. `ease-out` puts the deceleration exactly
+ * there. The curve this replaced, `cubic-bezier(0.4, 0, 0.2, 1)`, is the
+ * standard ease-in-*out* — it held the circle back for the first third and
+ * then flung it across the screen, which is what read as a stutter rather than
+ * as a wipe. At 340ms there was also no room left to decelerate into.
  */
-const WIPE_MS = 340;
-const WIPE_EASE = 'cubic-bezier(0.4, 0, 0.2, 1)';
-/** Icon swap tracks the wipe — a slower icon makes the whole press feel laggy. */
+const WIPE_MS = 550;
+const WIPE_EASE = 'ease-out';
+/** Icon swap stays inside the wipe — a slower icon makes the press feel laggy. */
 const ICON_SECONDS = 0.28;
-/** The circle starts at roughly the button's size, not a point. */
-const START_RADIUS = 14;
+/** The circle opens from a point, as in the source. */
+const START_RADIUS = 0;
 
 type ViewTransitionDocument = Document & {
   startViewTransition?: (callback: () => void) => {
@@ -99,35 +103,43 @@ export function ThemeToggle() {
       flushSync(() => setTheme(next));
     });
 
-    void transition.ready.then(() => {
-      // Radius that reaches the furthest corner from the origin.
-      const endRadius = Math.hypot(
-        Math.max(originX, window.innerWidth - originX),
-        Math.max(originY, window.innerHeight - originY),
-      );
+    // Both promises reject if the transition is skipped — a second one
+    // starting, or the tab being hidden mid-flight. The theme itself is
+    // already applied by then, so there is nothing to undo; swallowing the
+    // rejection just keeps it from surfacing as an unhandled one.
+    transition.ready.then(
+      () => {
+        // Radius that reaches the furthest corner from the origin.
+        const endRadius = Math.hypot(
+          Math.max(originX, window.innerWidth - originX),
+          Math.max(originY, window.innerHeight - originY),
+        );
 
-      document.documentElement.animate(
-        {
-          clipPath: [
-            `circle(${START_RADIUS}px at ${originX}px ${originY}px)`,
-            `circle(${endRadius}px at ${originX}px ${originY}px)`,
-          ],
-        },
-        {
-          duration: WIPE_MS,
-          easing: WIPE_EASE,
-          pseudoElement: '::view-transition-new(root)',
-        },
-      );
-    });
+        document.documentElement.animate(
+          {
+            clipPath: [
+              `circle(${START_RADIUS}px at ${originX}px ${originY}px)`,
+              `circle(${endRadius}px at ${originX}px ${originY}px)`,
+            ],
+          },
+          {
+            duration: WIPE_MS,
+            easing: WIPE_EASE,
+            pseudoElement: '::view-transition-new(root)',
+          },
+        );
+      },
+      () => {},
+    );
 
-    void transition.finished.finally(() => {
+    const settle = () => {
       wiping.current = false;
       thaw();
       // The attribute is already correct; this only makes sure the choice is
       // on record even if the render above was interrupted.
       persistTheme(next);
-    });
+    };
+    transition.finished.then(settle, settle);
   };
 
   return (

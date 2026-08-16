@@ -45,7 +45,7 @@ export const BOOT_CONFIG = {
      * a hair lighter than `ink`, no hue of its own — so the card separates by
      * value alone. No acid on this edge.
      */
-    edgeColor: '#1C1C1C',
+    edgeColor: 'rgb(var(--color-edge))',
     /** One lap of the border. Long enough that you catch it, not watch it. */
     sheenSeconds: 9,
     /** One inhale + exhale of the halo. */

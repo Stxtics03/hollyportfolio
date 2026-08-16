@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { LinksRow } from './LinksRow';
 import { Terminal } from './Terminal';
 import { PROFILE } from '../../data/profile';
 import { createRng } from '../../lib/rng';
@@ -129,12 +130,26 @@ export function ProfileCard() {
         boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.05)',
       }}
     >
-      <div className="flex items-center gap-4">
-        <Avatar />
-        <div className="flex min-w-0 flex-col">
-          <p className="text-bone tracking-heading text-lead">{PROFILE.name}</p>
-          <p className="text-bone/40 tracking-body text-body">{PROFILE.handle}</p>
+      {/* Identity left, links right — the corner was empty, and it puts the
+          outbound doors at the top of the card rather than after it. Below
+          `md` they drop under the name, where a side-by-side row would not
+          fit.
+
+          The tiles are centred against the identity block, not hung from its
+          top: the block is one avatar tall (64) and the row is one tile tall
+          (32), so top-aligning left the icons reading 16px high against
+          everything beside them. `SiteShell` derives the margin note's
+          position from the same two measurements. */}
+      <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
+        <div className="flex items-center gap-4">
+          <Avatar />
+          <div className="flex min-w-0 flex-col">
+            <p className="text-bone tracking-heading text-lead">{PROFILE.name}</p>
+            <p className="text-bone/40 tracking-body text-body">{PROFILE.handle}</p>
+          </div>
         </div>
+
+        <LinksRow className="shrink-0" />
       </div>
 
       <p className="text-bone tracking-heading text-lead mt-7 md:text-sub">
@@ -149,11 +164,17 @@ export function ProfileCard() {
         <Terminal />
       </div>
 
-      {/* Footer: a joke on the left, live availability on the right. */}
-      <div className="border-smoke-soft mt-6 flex flex-wrap items-end justify-between gap-4 border-t pt-4">
+      {/* Footer: a joke on the left, live availability on the right.
+
+          Both columns are 12px/20px type, so they line up line-for-line as
+          long as neither side adds spacing of its own — hence `items-start`
+          and no gap in the right-hand column. With a gap the two stacks were
+          4px out of step, which is exactly the kind of near-miss that reads as
+          sloppy rather than as a deliberate offset. */}
+      <div className="border-smoke-soft mt-6 flex flex-wrap items-start justify-between gap-x-4 gap-y-2 border-t pt-4">
         <RotatingQuote still={reducedMotion} />
 
-        <div className="flex flex-col items-end gap-1">
+        <div className="flex flex-col items-end">
           <p className="text-bone/70 tracking-label text-micro flex items-center gap-2">
             <span className="relative flex h-2 w-2" aria-hidden>
               {PROFILE.availability.available && !reducedMotion ? (
