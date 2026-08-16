@@ -3,6 +3,7 @@ import { Header } from '../layout/Header';
 import { Section } from '../layout/Section';
 import { ProfileCard } from '../hero/ProfileCard';
 import { ProjectGrid } from '../projects/ProjectGrid';
+import { ExperienceList } from '../experience/ExperienceList';
 import { TechMarquee } from '../stack/TechMarquee';
 import { TreeField } from '../tree/TreeField';
 import { SECTIONS } from '../../data/site';
@@ -81,22 +82,6 @@ export const SITE_CONFIG = {
   },
 } as const;
 
-/** Placeholder body copy so the scaffold has something to sit against. */
-function Placeholder({ lines = 2 }: { lines?: number }) {
-  return (
-    // Translucent so the tree behind the work sections reads through faintly.
-    <div className="border-smoke bg-ink/85 flex flex-col gap-3 rounded-2xl border p-6 backdrop-blur-sm">
-      {Array.from({ length: lines }, (_, index) => (
-        <div
-          key={index}
-          className="bg-smoke h-3 rounded-[2px]"
-          style={{ width: `${100 - index * 18}%` }}
-        />
-      ))}
-    </div>
-  );
-}
-
 export function SiteShell() {
   const reducedMotion = useReducedMotion();
   const gap = { marginTop: SITE_CONFIG.sectionGap, marginBottom: SITE_CONFIG.sectionGap };
@@ -105,7 +90,9 @@ export function SiteShell() {
     <div id="top" className="bg-ink min-h-[100dvh] w-full">
       <Header />
 
-      <main className="pt-14 pb-32">
+      {/* The bottom padding lives on the tree's wrapper, not here — see the
+          note there. `main` padding would sit outside it and unpin the tree. */}
+      <main className="pt-14">
         <div style={{ height: SITE_CONFIG.sectionGap }} />
 
         <Section
@@ -140,8 +127,16 @@ export function SiteShell() {
         {/* The tree lives behind these two sections. It sticks to the viewport
             while they scroll past, so it grows in place rather than sliding
             up out of frame. STAGE 6 replaces the placeholders with the
-            playlist and timeline, on translucent cards so it reads through. */}
-        <div className="relative">
+            playlist and timeline, on translucent cards so it reads through.
+
+            This wrapper has to run to the very bottom of the page, and that is
+            what the trailing space below is doing inside it rather than after
+            it. A sticky element only stays pinned while its container is still
+            passing the viewport: give the container less height than the page
+            has scroll left, and the tree comes unpinned and slides up for the
+            last screenful — which is the one thing this layout is trying not
+            to do. Anything added below the sections belongs in here too. */}
+        <div className="relative pb-32">
           <TreeField tuning={SITE_CONFIG.tree} className="z-0" />
 
           <div className="relative z-10">
@@ -162,16 +157,16 @@ export function SiteShell() {
               marker={SECTIONS.experience.marker}
               still={reducedMotion}
             >
-              <Placeholder lines={3} />
+              <ExperienceList still={reducedMotion} />
             </Section>
           </div>
-        </div>
 
-        {/* No closing hatch band here on purpose: it cut straight across the
-            tree's grid field, which reads as a seam through the artwork
-            rather than as a rule between sections. The field itself is the
-            end of the page. */}
-        <div style={{ height: SITE_CONFIG.sectionGap }} />
+          {/* No closing hatch band here on purpose: it cut straight across the
+              tree's grid field, which reads as a seam through the artwork
+              rather than as a rule between sections. The field itself is the
+              end of the page. */}
+          <div style={{ height: SITE_CONFIG.sectionGap }} />
+        </div>
       </main>
     </div>
   );

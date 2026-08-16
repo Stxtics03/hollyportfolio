@@ -26,16 +26,21 @@ export type SectionMeta = {
   id: string;
   /** Small mono label above the block. */
   label: string;
-  /** `*` or an index like `01`. */
+  /**
+   * The glyph before the label, drawn in the accent. `*` throughout: the
+   * numbered variant implied a running order the page does not actually have,
+   * and left `tech stack` looking like an aside between two numbered blocks
+   * rather than a section in its own right.
+   */
   marker: string;
 };
 
 /** Blog lives on its own route, so it is not a section of the home page. */
 export const SECTIONS = {
-  about: { id: 'about', label: 'about', marker: '01' },
+  about: { id: 'about', label: 'about', marker: '*' },
   stack: { id: 'stack', label: 'tech stack', marker: '*' },
-  projects: { id: 'projects', label: 'projects', marker: '02' },
-  experience: { id: 'experience', label: 'blend', marker: '03' },
+  projects: { id: 'projects', label: 'projects', marker: '*' },
+  experience: { id: 'experience', label: 'work experience', marker: '*' },
 } as const satisfies Record<string, SectionMeta>;
 
 export const BLOG_META = {

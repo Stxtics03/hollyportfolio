@@ -13,6 +13,12 @@
  * these three repos carries a GitHub description or a homepage, so nothing in
  * this file can be regenerated from the API — it is hand-written copy and
  * should be edited as such.
+ *
+ * LENGTH BUDGET: keep `description` at or under ~85 characters. The card does
+ * not clamp the text, on purpose — a card trailing off in `…` advertises a
+ * "read more" that does not exist. At the two-column width a line holds about
+ * 30 characters, so ~85 is three lines, and anything longer simply makes that
+ * one card taller than the rest of its row.
  */
 
 /** A brand mark to draw on a card. `slug` must exist in `BRAND_MARKS`. */
@@ -46,8 +52,7 @@ export const PROJECTS: Project[] = [
     slug: 'voice-to-voice-agent',
     title: 'Voice-to-Voice Agent',
     year: '2026',
-    description:
-      'A real-time spoken agent that hears what you said, infers how you appear to feel, and replies with speech whose delivery adapts to your state. Whisper STT through affect inference to expressive TTS, at 4.60% WER against an 8.72% target.',
+    description: 'Spoken agent that infers how you feel and adapts its reply. 4.60% WER.',
     tech: [
       { name: 'Python', slug: 'python' },
       { name: 'PyTorch', slug: 'pytorch' },
@@ -60,8 +65,7 @@ export const PROJECTS: Project[] = [
     slug: 'neural-network-compression',
     title: 'Neural Network Compression',
     year: '2026',
-    description:
-      'Compressing LeNet-5 on MNIST across five techniques — magnitude pruning, quantization, clustering, L0 structured sparsity and QAT. 147× smaller at 0.54pp accuracy loss, with the two negative results kept in because they are the useful part.',
+    description: 'LeNet-5 compressed 147× at 0.54pp accuracy loss, five techniques deep.',
     tech: [
       { name: 'Python', slug: 'python' },
       { name: 'PyTorch', slug: 'pytorch' },
@@ -73,8 +77,7 @@ export const PROJECTS: Project[] = [
     slug: 'infralock',
     title: 'InfraLock',
     year: '2026',
-    description:
-      'Infrastructure security and compliance platform. Automated compliance checks, vulnerability detection, AI-assisted configuration analysis and real-time alerts, over a complete audit trail of every change and remediation.',
+    description: 'Cloud security and compliance — automated checks, alerts, audit trail.',
     tech: [
       { name: 'React', slug: 'react' },
       { name: 'Express', slug: 'express' },

@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
-import { BRAND_MARKS } from '../stack/techIcons';
+import { BRAND_MARKS, markFill } from '../stack/techIcons';
 import { paintProjectPreview } from './projectPreview';
 import { EASE_REVEAL } from '../../lib/easings';
 import type { Project, TechRef } from '../../data/projects';
@@ -48,16 +48,16 @@ function TechDot({ tech }: { tech: TechRef }) {
 
   return (
     <li
-      className="border-smoke bg-ink-soft flex h-7 w-7 items-center justify-center rounded-full border"
+      className="border-smoke bg-ink-soft text-bone/70 flex h-7 w-7 items-center justify-center rounded-full border"
       title={tech.name}
     >
       <svg
         width="14"
         height="14"
         viewBox="0 0 24 24"
-        // Same treatment as the marquee: the brand colour is always in the
-        // markup, and the card decides how much of it to show.
-        style={{ fill: `#${mark.hex}` }}
+        // Brand colour where it reads, the inherited text colour where it does
+        // not — see `markFill`. Express would otherwise be black on black.
+        style={{ fill: markFill(mark.hex) }}
         className="opacity-80 transition-opacity duration-200 group-hover:opacity-100"
         aria-hidden
       >
@@ -126,12 +126,10 @@ export function ProjectCard({
           </span>
         </div>
 
-        {/* Clamped rather than truncated in the data, so the full sentence is
-            still in the DOM for anything reading the page rather than looking
-            at it. */}
-        <p className="text-bone/60 tracking-body text-micro mt-3 line-clamp-3">
-          {project.description}
-        </p>
+        {/* Deliberately not clamped. A card that ends in `…` promises a
+            "read more" that does not exist here, so the copy is written to
+            fit instead — see the length budget in `data/projects.ts`. */}
+        <p className="text-bone/60 tracking-body text-micro mt-3">{project.description}</p>
 
         {/* Pushed to the bottom so the stack and links sit on one line across
             the row, however long the descriptions run. */}

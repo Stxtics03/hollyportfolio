@@ -11,7 +11,7 @@ type SectionProps = {
    * marker is rendered in `acid`, the label in dimmed bone.
    */
   label: string;
-  /** Marker before the label. `*` or an index like `01`. */
+  /** Marker before the label. `*` across the site — see `data/site.ts`. */
   marker?: string;
   /** Rendered full-bleed, outside the column. */
   bleed?: ReactNode;

@@ -45,6 +45,29 @@ export type BrandMark = {
 };
 
 /**
+ * Where a mark's official colour is unusable against the surface it is drawn
+ * on, this returns `currentColor` instead.
+ *
+ * Several brands are literally black — Express and Next.js are both `000000` —
+ * which is invisible on this site's near-black cards, and the mirror problem
+ * exists in light mode for the near-white marks. Testing both ends and
+ * deferring to the inherited text colour fixes both at once without the icon
+ * needing to know which theme is active.
+ */
+export function markFill(hex: string): string {
+  const value = Number.parseInt(hex, 16);
+  if (Number.isNaN(value)) return 'currentColor';
+
+  const r = (value >> 16) & 255;
+  const g = (value >> 8) & 255;
+  const b = value & 255;
+  // Rec. 601 luma is plenty for a "is this nearly black or nearly white" test.
+  const luma = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+
+  return luma < 0.14 || luma > 0.86 ? 'currentColor' : `#${hex}`;
+}
+
+/**
  * Brand marks, imported by name rather than looked up dynamically.
  *
  * simple-icons ships ~3,400 icons; a dynamic `icons[slug]` lookup defeats
