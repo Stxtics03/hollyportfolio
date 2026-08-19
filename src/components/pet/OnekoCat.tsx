@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react';
+import { denHome, denVisible } from './CatDen';
 import { useReducedMotion } from '../../hooks/useReducedMotion';
 
 /**
@@ -94,12 +95,24 @@ const SPEED = 15;
 const TICK_MS = 100;
 /** Side of one sprite in the sheet. */
 const SPRITE = 32;
-/** Inside this, the cat stops chasing and settles. */
+/** Inside this, the cat stops chasing the cursor and settles. */
 const REST_DISTANCE = 48;
+/**
+ * The same, for the den — much tighter. The cursor gets personal space; a bed
+ * does not. At 48px the cat would stop wherever it first came within half a
+ * card's width of home and sit down beside its own house.
+ */
+const HOME_REST = 4;
 /** Closest the cat comes to a viewport edge. */
 const EDGE_MARGIN = 16;
 /** Below this width it starts on the right, clear of the header's links. */
 const MOBILE_WIDTH = 768;
+/**
+ * How long the pointer must sit still before the cat gives up on it and walks
+ * home to the den. Long enough that reading a paragraph does not send it away,
+ * short enough that leaving the tab open ends with a cat in its box.
+ */
+const HOME_AFTER_MS = 7000;
 
 export function OnekoCat() {
   const ref = useRef<HTMLDivElement>(null);
@@ -114,11 +127,18 @@ export function OnekoCat() {
     const neko = ref.current;
     if (!neko) return;
 
-    let nekoX = window.innerWidth <= MOBILE_WIDTH ? window.innerWidth - 64 : 32;
-    let nekoY = 32;
+    // Starts in the den when there is one, so the first thing you see is a cat
+    // at home rather than a sprite parked in the corner.
+    let home = denVisible() ? denHome() : { x: 32, y: 32 };
+    let nekoX = denVisible() ? home.x : window.innerWidth <= MOBILE_WIDTH ? window.innerWidth - 64 : 32;
+    let nekoY = denVisible() ? home.y : 32;
     // Starts under its own feet, so it holds still until the pointer moves.
     let mouseX = nekoX;
     let mouseY = nekoY;
+    /** When the pointer last moved — what decides whether the cat goes home. */
+    let lastPointerAt = performance.now();
+    /** True while walking back to the den rather than chasing the cursor. */
+    let headingHome = false;
 
     let frameCount = 0;
     let idleTime = 0;
@@ -146,6 +166,13 @@ export function OnekoCat() {
     /** What it does once it has caught up: mostly nothing, occasionally a bit. */
     const idle = () => {
       idleTime += 1;
+
+      // Home and settled: curl up rather than waiting on the dice below. A cat
+      // that walked all the way back to its box and then stood in the doorway
+      // would look like it had forgotten why it went.
+      if (headingHome && !idleAnimation && idleTime > 4) {
+        idleAnimation = 'sleeping';
+      }
 
       // Roughly a 1-in-200 chance per tick once it has been still a second.
       if (idleTime > 10 && Math.floor(Math.random() * 200) === 0 && !idleAnimation) {
@@ -185,11 +212,21 @@ export function OnekoCat() {
 
     const step = () => {
       frameCount += 1;
-      const diffX = nekoX - mouseX;
-      const diffY = nekoY - mouseY;
+
+      // Chase the pointer while it is being used; head for the den once it has
+      // been abandoned. The den is the target, not a special mode — everything
+      // below (walk sprites, the alert pause, the idle animations) works the
+      // same either way.
+      headingHome = denVisible() && performance.now() - lastPointerAt > HOME_AFTER_MS;
+      const targetX = headingHome ? home.x : mouseX;
+      const targetY = headingHome ? home.y : mouseY;
+
+      const diffX = nekoX - targetX;
+      const diffY = nekoY - targetY;
       const distance = Math.hypot(diffX, diffY);
 
-      if (distance < SPEED || distance < REST_DISTANCE) {
+      const rest = headingHome ? HOME_REST : REST_DISTANCE;
+      if (distance < rest) {
         idle();
         return;
       }
@@ -210,8 +247,13 @@ export function OnekoCat() {
       direction += diffX / distance < -0.5 ? 'E' : '';
       setSprite(direction, frameCount);
 
-      nekoX -= (diffX / distance) * SPEED;
-      nekoY -= (diffY / distance) * SPEED;
+      // Never overshoot: on the last step home the stride is whatever is left,
+      // so the cat lands in the doorway rather than oscillating past it. For
+      // the cursor this changes nothing — it stops 48px out, long before the
+      // remaining distance is shorter than one stride.
+      const stride = Math.min(SPEED, distance);
+      nekoX -= (diffX / distance) * stride;
+      nekoY -= (diffY / distance) * stride;
       nekoX = Math.min(Math.max(EDGE_MARGIN, nekoX), window.innerWidth - EDGE_MARGIN);
       nekoY = Math.min(Math.max(EDGE_MARGIN, nekoY), window.innerHeight - EDGE_MARGIN);
       place();
@@ -220,9 +262,13 @@ export function OnekoCat() {
     const onPointerMove = (event: PointerEvent) => {
       mouseX = event.clientX;
       mouseY = event.clientY;
+      lastPointerAt = performance.now();
     };
 
     const onResize = () => {
+      // The den is only drawn from `lg`, so crossing that width changes where
+      // home is — or whether there is one.
+      home = denVisible() ? denHome() : { x: 32, y: 32 };
       // Keep it on screen when the window shrinks under it.
       nekoX = Math.min(Math.max(EDGE_MARGIN, nekoX), window.innerWidth - EDGE_MARGIN);
       nekoY = Math.min(Math.max(EDGE_MARGIN, nekoY), window.innerHeight - EDGE_MARGIN);
